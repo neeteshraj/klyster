@@ -1,0 +1,330 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useDeployments, useDeploymentsInvalidate } from "@/hooks/use-deployments";
+import { useStore } from "@/store/use-store";
+import { fetchWithKubeconfig } from "@/lib/api-client";
+import { NamespaceSelector } from "@/components/layout/namespace-selector";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  MoreHorizontal,
+  RotateCw,
+  SlidersHorizontal,
+  FileText,
+  ScrollText,
+  Pencil,
+  Trash2,
+  ExternalLink,
+} from "lucide-react";
+
+export default function DeploymentsPage() {
+  const selectedNamespace = useStore((s) => s.selectedNamespace);
+  const customKubeconfig = useStore((s) => s.customKubeconfig);
+  const { data: deployments, isLoading, error } = useDeployments();
+  const invalidate = useDeploymentsInvalidate();
+  const [scaleOpen, setScaleOpen] = useState(false);
+  const [scaleTarget, setScaleTarget] = useState<{
+    name: string;
+    namespace: string;
+    replicas: number;
+  } | null>(null);
+  const [replicasInput, setReplicasInput] = useState("0");
+  const [scaling, setScaling] = useState(false);
+  const [restarting, setRestarting] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ name: string; namespace: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const openScale = (name: string, namespace: string, replicas: number) => {
+    setScaleTarget({ name, namespace, replicas });
+    setReplicasInput(String(replicas));
+    setScaleOpen(true);
+  };
+
+  const handleRestart = async (name: string, namespace: string) => {
+    setRestarting(`${namespace}/${name}`);
+    try {
+      const res = await fetchWithKubeconfig(
+        "/api/deployment/restart",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ namespace, name }),
+        },
+        customKubeconfig
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.details || data.error || "Restart failed");
+      }
+      invalidate();
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setRestarting(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetchWithKubeconfig(
+        `/api/deployment/${encodeURIComponent(deleteTarget.name)}?namespace=${encodeURIComponent(deleteTarget.namespace)}`,
+        { method: "DELETE" },
+        customKubeconfig
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.details || data.error || "Delete failed");
+      }
+      invalidate();
+      setDeleteTarget(null);
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleScale = async () => {
+    if (!scaleTarget) return;
+    const replicas = parseInt(replicasInput, 10);
+    if (isNaN(replicas) || replicas < 0) {
+      alert("Replicas must be a non-negative number.");
+      return;
+    }
+    setScaling(true);
+    try {
+      const res = await fetchWithKubeconfig(
+        "/api/deployment/scale",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            namespace: scaleTarget.namespace,
+            name: scaleTarget.name,
+            replicas,
+          }),
+        },
+        customKubeconfig
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.details || data.error || "Scale failed");
+      }
+      invalidate();
+      setScaleOpen(false);
+      setScaleTarget(null);
+    } catch (e) {
+      alert((e as Error).message);
+    } finally {
+      setScaling(false);
+    }
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Deployments</h1>
+        <NamespaceSelector />
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+          {error.message}
+        </div>
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            Deployments
+            {selectedNamespace !== "_all" && (
+              <span className="text-muted-foreground font-normal ml-2">
+                in {selectedNamespace}
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          ) : !deployments?.length ? (
+            <p className="text-muted-foreground py-8 text-center">
+              No deployments found.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Namespace</TableHead>
+                  <TableHead>Ready</TableHead>
+                  <TableHead>Up-to-date</TableHead>
+                  <TableHead>Available</TableHead>
+                  <TableHead>Age</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {deployments.map((d) => (
+                  <TableRow key={`${d.namespace}/${d.name}`}>
+                    <TableCell className="font-medium">{d.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {d.namespace}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={d.available === d.replicas ? "success" : "warning"}>
+                        {d.ready}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{d.upToDate}</TableCell>
+                    <TableCell>{d.available}</TableCell>
+                    <TableCell className="text-muted-foreground">{d.age}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href={`/workloads/deployments/${encodeURIComponent(d.name)}?namespace=${encodeURIComponent(d.namespace)}`}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Show details
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openScale(d.name, d.namespace, d.replicas)}>
+                            <SlidersHorizontal className="h-4 w-4 mr-2" />
+                            Scale
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleRestart(d.name, d.namespace)}
+                            disabled={restarting === `${d.namespace}/${d.name}`}
+                          >
+                            <RotateCw className="h-4 w-4 mr-2" />
+                            {restarting === `${d.namespace}/${d.name}` ? "Restarting…" : "Restart"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/workloads/pods?namespace=${encodeURIComponent(d.namespace)}`}>
+                              <ScrollText className="h-4 w-4 mr-2" />
+                              Logs
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href={`/workloads/deployments/${encodeURIComponent(d.name)}?namespace=${encodeURIComponent(d.namespace)}`}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => setDeleteTarget({ name: d.name, namespace: d.namespace })}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={scaleOpen} onOpenChange={setScaleOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Scale deployment</DialogTitle>
+            <DialogDescription>
+              {scaleTarget && (
+                <>
+                  Set replicas for &quot;{scaleTarget.name}&quot; in namespace &quot;{scaleTarget.namespace}&quot;.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <label className="text-sm font-medium mb-2 block">Replicas</label>
+            <Input
+              type="number"
+              min={0}
+              value={replicasInput}
+              onChange={(e) => setReplicasInput(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setScaleOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleScale} disabled={scaling}>
+              {scaling ? "Scaling…" : "Scale"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete deployment</DialogTitle>
+            <DialogDescription>
+              {deleteTarget && (
+                <>
+                  Delete &quot;{deleteTarget.name}&quot; in namespace &quot;{deleteTarget.namespace}&quot;? This cannot be undone.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" disabled={deleting} onClick={handleDelete}>
+              {deleting ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
