@@ -3,6 +3,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { AuthGuard } from "@/components/layout/auth-guard";
 import { ThemeSync } from "@/components/layout/theme-provider";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "Klyster – Kubernetes Dashboard",
@@ -25,6 +27,8 @@ export default function RootLayout({
           <ThemeSync />
           <AuthGuard>{children}</AuthGuard>
         </Providers>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
