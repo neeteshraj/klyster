@@ -11,7 +11,7 @@ import { ArrowLeft, Trash2, RotateCw, SlidersHorizontal, FileText, ScrollText } 
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
+import { ThemedEditor } from "@/components/ui/themed-editor";
 import {
   Dialog,
   DialogContent,
@@ -22,10 +22,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-const MonacoEditor = dynamic(
-  () => import("@monaco-editor/react").then((mod) => mod.default),
-  { ssr: false }
-);
 
 export default function DeploymentDetailPage() {
   const params = useParams();
@@ -188,7 +184,7 @@ export default function DeploymentDetailPage() {
             </p>
           </CardHeader>
           <CardContent>
-            <MonacoEditor height="500px" language="yaml" value={data.yaml} options={{ readOnly: true }} />
+            <ThemedEditor height="500px" language="yaml" value={data.yaml} options={{ readOnly: true }} />
           </CardContent>
         </Card>
       ) : data && !data.yaml ? (

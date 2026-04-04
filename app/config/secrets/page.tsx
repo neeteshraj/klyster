@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { Lock } from "lucide-react";
 import { useSecrets } from "@/hooks/use-secrets";
-import { useStore } from "@/store/use-store";
-import { NamespaceSelector } from "@/components/layout/namespace-selector";
+import { PageHeader, EmptyState, ErrorBanner, LoadingRows } from "@/components/layout/page-header";
 import {
   Table,
   TableBody,
@@ -12,88 +12,62 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 export default function SecretsPage() {
-  const selectedNamespace = useStore((s) => s.selectedNamespace);
   const { data: secrets, isLoading, error } = useSecrets();
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Secrets</h1>
-        <NamespaceSelector />
-      </div>
+    <div className="p-6 space-y-4 w-full">
+      <PageHeader
+        icon={<Lock className="h-4 w-4 text-white/50" />}
+        title="Secrets"
+        count={secrets?.length}
+      />
 
-      {error && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
-          {error.message}
+      {error && <ErrorBanner message={error.message} />}
+
+      {isLoading ? (
+        <LoadingRows />
+      ) : !secrets?.length ? (
+        <EmptyState message="No secrets found." />
+      ) : (
+        <div className="rounded-xl border border-white/[0.06] overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-[11px] uppercase tracking-wider text-white/30 font-semibold bg-white/[0.02] h-9">Name</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-white/30 font-semibold bg-white/[0.02] h-9">Namespace</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-white/30 font-semibold bg-white/[0.02] h-9">Type</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-white/30 font-semibold bg-white/[0.02] h-9">Keys</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-white/30 font-semibold bg-white/[0.02] h-9">Age</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {secrets.map((s) => (
+                <TableRow key={`${s.namespace}/${s.name}`} className="border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                  <TableCell className="text-[13px] font-medium">
+                    <Link
+                      href={`/config/secrets/${s.name}?namespace=${encodeURIComponent(s.namespace)}`}
+                      className="text-white hover:text-primary transition-colors"
+                    >
+                      {s.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-[13px] text-white/70 py-2.5">{s.namespace}</TableCell>
+                  <TableCell className="text-[13px] text-white/70 py-2.5">
+                    <Badge variant="secondary" className="text-[11px] font-medium">{s.type ?? "Opaque"}</Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-[12px] text-white/50 py-2.5">
+                    {s.keys.length ? s.keys.join(", ") : "—"}
+                  </TableCell>
+                  <TableCell className="text-[13px] text-white/70 py-2.5">{s.age}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Secrets
-            {selectedNamespace !== "_all" && (
-              <span className="text-muted-foreground font-normal ml-2">
-                in {selectedNamespace}
-              </span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : !secrets?.length ? (
-            <p className="text-muted-foreground py-8 text-center">
-              No secrets found.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Namespace</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Keys</TableHead>
-                  <TableHead>Age</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {secrets.map((s) => (
-                  <TableRow key={`${s.namespace}/${s.name}`}>
-                    <TableCell className="font-medium">
-                      <Link
-                        href={`/config/secrets/${s.name}?namespace=${encodeURIComponent(s.namespace)}`}
-                        className="text-primary hover:underline"
-                      >
-                        {s.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{s.namespace}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{s.type ?? "Opaque"}</Badge>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {s.keys.length ? s.keys.join(", ") : "—"}
-                    </TableCell>
-                    <TableCell>{s.age}</TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

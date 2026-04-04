@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useDeployments, useDeploymentsInvalidate } from "@/hooks/use-deployments";
 import { useStore } from "@/store/use-store";
 import { fetchWithKubeconfig } from "@/lib/api-client";
-import { NamespaceSelector } from "@/components/layout/namespace-selector";
+import { PageHeader, EmptyState, ErrorBanner, LoadingRows } from "@/components/layout/page-header";
 import {
   Table,
   TableBody,
@@ -14,10 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +25,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,10 +32,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  LayoutGrid,
   MoreHorizontal,
   RotateCw,
   SlidersHorizontal,
-  FileText,
   ScrollText,
   Pencil,
   Trash2,
@@ -45,7 +43,6 @@ import {
 } from "lucide-react";
 
 export default function DeploymentsPage() {
-  const selectedNamespace = useStore((s) => s.selectedNamespace);
   const customKubeconfig = useStore((s) => s.customKubeconfig);
   const { data: deployments, isLoading, error } = useDeployments();
   const invalidate = useDeploymentsInvalidate();
@@ -150,126 +147,112 @@ export default function DeploymentsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Deployments</h1>
-        <NamespaceSelector />
-      </div>
+    <div className="p-6 space-y-4 w-full">
+      <PageHeader
+        icon={<LayoutGrid className="h-4 w-4 text-white/50" />}
+        title="Deployments"
+        count={deployments?.length}
+      />
 
-      {error && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive">
-          {error.message}
+      {error && <ErrorBanner message={error.message} />}
+
+      {isLoading ? (
+        <LoadingRows count={5} />
+      ) : !deployments?.length ? (
+        <EmptyState message="No deployments found." />
+      ) : (
+        <div className="rounded-xl border border-white/[0.06] overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-white/[0.04] hover:bg-transparent">
+                <TableHead className="text-[11px] uppercase tracking-wider text-white/30 font-semibold bg-white/[0.02] h-9">Name</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-white/30 font-semibold bg-white/[0.02] h-9">Namespace</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-white/30 font-semibold bg-white/[0.02] h-9">Ready</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-white/30 font-semibold bg-white/[0.02] h-9">Up-to-date</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-white/30 font-semibold bg-white/[0.02] h-9">Available</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-white/30 font-semibold bg-white/[0.02] h-9">Age</TableHead>
+                <TableHead className="text-[11px] uppercase tracking-wider text-white/30 font-semibold bg-white/[0.02] h-9 w-12"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {deployments.map((d) => (
+                <TableRow key={`${d.namespace}/${d.name}`} className="border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                  <TableCell className="text-[13px] font-medium">
+                    <Link
+                      href={`/workloads/deployments/${encodeURIComponent(d.name)}?namespace=${encodeURIComponent(d.namespace)}`}
+                      className="text-white hover:text-primary transition-colors"
+                    >
+                      {d.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-[13px] text-white/70 py-2.5">
+                    {d.namespace}
+                  </TableCell>
+                  <TableCell className="text-[13px] text-white/70 py-2.5">
+                    <Badge variant={d.available === d.replicas ? "success" : "warning"}>
+                      {d.ready}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-[13px] text-white/70 py-2.5">{d.upToDate}</TableCell>
+                  <TableCell className="text-[13px] text-white/70 py-2.5">{d.available}</TableCell>
+                  <TableCell className="text-[13px] text-white/70 py-2.5">{d.age}</TableCell>
+                  <TableCell className="text-[13px] text-white/70 py-2.5">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-white/30 hover:text-white/70">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/workloads/deployments/${encodeURIComponent(d.name)}?namespace=${encodeURIComponent(d.namespace)}`}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Show details
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openScale(d.name, d.namespace, d.replicas)}>
+                          <SlidersHorizontal className="h-4 w-4 mr-2" />
+                          Scale
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleRestart(d.name, d.namespace)}
+                          disabled={restarting === `${d.namespace}/${d.name}`}
+                        >
+                          <RotateCw className="h-4 w-4 mr-2" />
+                          {restarting === `${d.namespace}/${d.name}` ? "Restarting\u2026" : "Restart"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/workloads/pods?namespace=${encodeURIComponent(d.namespace)}`}>
+                            <ScrollText className="h-4 w-4 mr-2" />
+                            Logs
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/workloads/deployments/${encodeURIComponent(d.name)}?namespace=${encodeURIComponent(d.namespace)}`}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeleteTarget({ name: d.name, namespace: d.namespace })}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Deployments
-            {selectedNamespace !== "_all" && (
-              <span className="text-muted-foreground font-normal ml-2">
-                in {selectedNamespace}
-              </span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : !deployments?.length ? (
-            <p className="text-muted-foreground py-8 text-center">
-              No deployments found.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Namespace</TableHead>
-                  <TableHead>Ready</TableHead>
-                  <TableHead>Up-to-date</TableHead>
-                  <TableHead>Available</TableHead>
-                  <TableHead>Age</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {deployments.map((d) => (
-                  <TableRow key={`${d.namespace}/${d.name}`}>
-                    <TableCell className="font-medium">{d.name}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {d.namespace}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={d.available === d.replicas ? "success" : "warning"}>
-                        {d.ready}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{d.upToDate}</TableCell>
-                    <TableCell>{d.available}</TableCell>
-                    <TableCell className="text-muted-foreground">{d.age}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link
-                              href={`/workloads/deployments/${encodeURIComponent(d.name)}?namespace=${encodeURIComponent(d.namespace)}`}
-                            >
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Show details
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openScale(d.name, d.namespace, d.replicas)}>
-                            <SlidersHorizontal className="h-4 w-4 mr-2" />
-                            Scale
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleRestart(d.name, d.namespace)}
-                            disabled={restarting === `${d.namespace}/${d.name}`}
-                          >
-                            <RotateCw className="h-4 w-4 mr-2" />
-                            {restarting === `${d.namespace}/${d.name}` ? "Restarting…" : "Restart"}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/workloads/pods?namespace=${encodeURIComponent(d.namespace)}`}>
-                              <ScrollText className="h-4 w-4 mr-2" />
-                              Logs
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link
-                              href={`/workloads/deployments/${encodeURIComponent(d.name)}?namespace=${encodeURIComponent(d.namespace)}`}
-                            >
-                              <Pencil className="h-4 w-4 mr-2" />
-                              Edit
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => setDeleteTarget({ name: d.name, namespace: d.namespace })}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
 
       <Dialog open={scaleOpen} onOpenChange={setScaleOpen}>
         <DialogContent>
@@ -284,12 +267,13 @@ export default function DeploymentsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <label className="text-sm font-medium mb-2 block">Replicas</label>
+            <label className="text-[11px] uppercase tracking-wider text-white/30 font-semibold mb-2 block">Replicas</label>
             <Input
               type="number"
               min={0}
               value={replicasInput}
               onChange={(e) => setReplicasInput(e.target.value)}
+              className="h-9 bg-white/[0.03] border-white/[0.06] text-white text-sm rounded-lg"
             />
           </div>
           <DialogFooter>
@@ -297,7 +281,7 @@ export default function DeploymentsPage() {
               Cancel
             </Button>
             <Button onClick={handleScale} disabled={scaling}>
-              {scaling ? "Scaling…" : "Scale"}
+              {scaling ? "Scaling\u2026" : "Scale"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -320,7 +304,7 @@ export default function DeploymentsPage() {
               Cancel
             </Button>
             <Button variant="destructive" disabled={deleting} onClick={handleDelete}>
-              {deleting ? "Deleting…" : "Delete"}
+              {deleting ? "Deleting\u2026" : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

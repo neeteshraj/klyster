@@ -20,6 +20,12 @@ export function parseQuantityToNumber(q: string): number {
   const s = (q || "").trim();
   if (!s) return 0;
   const num = parseFloat(s);
+  if (s.endsWith("n") && !s.endsWith("min")) {
+    return (parseFloat(s.slice(0, -1)) || 0) / 1_000_000_000;
+  }
+  if (s.endsWith("u")) {
+    return (parseFloat(s.slice(0, -1)) || 0) / 1_000_000;
+  }
   if (s.endsWith("m") && !s.endsWith("Gi") && !s.endsWith("Mi") && !s.endsWith("Ki")) {
     return (parseFloat(s.slice(0, -1)) || 0) / 1000;
   }

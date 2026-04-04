@@ -10,6 +10,8 @@ import os from "os";
 let kubeConfig: k8s.KubeConfig | null = null;
 let coreV1Api: k8s.CoreV1Api | null = null;
 let appsV1Api: k8s.AppsV1Api | null = null;
+let batchV1Api: k8s.BatchV1Api | null = null;
+let autoscalingV2Api: k8s.AutoscalingV2Api | null = null;
 let networkingV1Api: k8s.NetworkingV1Api | null = null;
 let metricsClient: k8s.Metrics | null = null;
 
@@ -142,6 +144,32 @@ export function getAppsV1Api(request?: RequestWithHeaders & { url?: string }): k
 }
 
 /**
+ * Batch V1 API (Jobs, CronJobs).
+ */
+export function getBatchV1Api(request?: RequestWithHeaders & { url?: string }): k8s.BatchV1Api {
+  const kc = getKubeConfigFromRequest(request);
+  if (!hasCustomKubeconfig(request)) {
+    if (batchV1Api) return batchV1Api;
+    batchV1Api = kc.makeApiClient(k8s.BatchV1Api);
+    return batchV1Api;
+  }
+  return kc.makeApiClient(k8s.BatchV1Api);
+}
+
+/**
+ * Autoscaling V2 API (HorizontalPodAutoscaler).
+ */
+export function getAutoscalingV2Api(request?: RequestWithHeaders & { url?: string }): k8s.AutoscalingV2Api {
+  const kc = getKubeConfigFromRequest(request);
+  if (!hasCustomKubeconfig(request)) {
+    if (autoscalingV2Api) return autoscalingV2Api;
+    autoscalingV2Api = kc.makeApiClient(k8s.AutoscalingV2Api);
+    return autoscalingV2Api;
+  }
+  return kc.makeApiClient(k8s.AutoscalingV2Api);
+}
+
+/**
  * Networking V1 API (Ingress, IngressClass, NetworkPolicy, etc.).
  */
 export function getNetworkingV1Api(request?: RequestWithHeaders & { url?: string }): k8s.NetworkingV1Api {
@@ -231,6 +259,8 @@ export function resetK8sClients(): void {
   kubeConfig = null;
   coreV1Api = null;
   appsV1Api = null;
+  batchV1Api = null;
+  autoscalingV2Api = null;
   networkingV1Api = null;
   metricsClient = null;
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCoreV1Api, getCurrentContext, getMetrics } from "@/lib/k8s";
+import { getCoreV1Api, getAppsV1Api, getCurrentContext, getMetrics } from "@/lib/k8s";
 import { parseQuantityToNumber } from "@/lib/format";
 import type { ClusterOverview } from "@/lib/types";
 
@@ -18,15 +18,18 @@ function getResource(
 export async function GET(request: NextRequest) {
   try {
     const coreApi = getCoreV1Api(request);
-    const [nsRes, podsRes, nodesRes] = await Promise.all([
+    const appsApi = getAppsV1Api(request);
+    const [nsRes, podsRes, nodesRes, deploymentsRes] = await Promise.all([
       coreApi.listNamespace(),
       coreApi.listPodForAllNamespaces(),
       coreApi.listNode().catch(() => ({ items: [] })),
+      appsApi.listDeploymentForAllNamespaces().catch(() => ({ items: [] })),
     ]);
     const namespacesCount = nsRes.items?.length ?? 0;
     const podsCount = podsRes.items?.length ?? 0;
     const nodes = nodesRes.items ?? [];
     const nodesCount = nodes.length;
+    const deploymentsCount = (deploymentsRes.items ?? []).length;
     const context = getCurrentContext(request);
 
     let resourceUtilization: ClusterOverview["resourceUtilization"] | undefined;
@@ -89,6 +92,7 @@ export async function GET(request: NextRequest) {
     const overview: ClusterOverview = {
       namespacesCount,
       podsCount,
+      deploymentsCount,
       context,
       nodesCount,
       resourceUtilization,

@@ -9,12 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
+import { ThemedEditor } from "@/components/ui/themed-editor";
 
-const MonacoEditor = dynamic(
-  () => import("@monaco-editor/react").then((mod) => mod.default),
-  { ssr: false }
-);
 
 export default function IngressClassDetailPage() {
   const params = useParams();
@@ -71,7 +67,7 @@ export default function IngressClassDetailPage() {
             <CardTitle>YAML</CardTitle>
           </CardHeader>
           <CardContent>
-            <MonacoEditor height="400px" language="yaml" value={data.yaml} options={{ readOnly: true }} />
+            <ThemedEditor height="400px" language="yaml" value={data.yaml} options={{ readOnly: true }} />
           </CardContent>
         </Card>
       ) : null}

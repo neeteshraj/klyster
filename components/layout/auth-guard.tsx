@@ -24,7 +24,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (!isLoggedIn && !isAuthPath) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-muted-foreground">Redirecting to sign in…</p>
+        <div className="flex items-center gap-3">
+          <div className="h-5 w-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <p className="text-muted-foreground text-sm">Redirecting to sign in…</p>
+        </div>
       </div>
     );
   }
@@ -34,9 +37,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-background">
       <Sidebar />
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto bg-background">
+        {children}
+      </main>
     </div>
   );
 }

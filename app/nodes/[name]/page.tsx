@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import dynamic from "next/dynamic";
+import { ThemedEditor } from "@/components/ui/themed-editor";
 import { useNodeDetail } from "@/hooks/use-node-detail";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -20,10 +20,6 @@ import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatBytes, parseQuantityToNumber } from "@/lib/format";
 
-const MonacoEditor = dynamic(
-  () => import("@monaco-editor/react").then((mod) => mod.default),
-  { ssr: false }
-);
 
 function UsageCard({
   title,
@@ -240,7 +236,7 @@ export default function NodeDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="rounded-md border h-[400px] overflow-hidden">
-                <MonacoEditor
+                <ThemedEditor
                   height="400px"
                   language="yaml"
                   value={node.yaml ?? "# No YAML"}

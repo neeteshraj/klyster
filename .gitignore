@@ -63,6 +63,12 @@ ehthumbs.db
 # Vercel
 .vercel
 
+# Claude Code
+.claude/
+
+# UI/UX skill
+ui-ux-pro-max-skill/
+
 # Misc
 .cache/
 *.local

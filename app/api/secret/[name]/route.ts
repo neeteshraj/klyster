@@ -25,11 +25,20 @@ export async function GET(
     } catch {
       yamlStr = undefined;
     }
+    // Extract base64-encoded data values
+    const dataEntries: Record<string, string> = {};
+    if (secret.data) {
+      for (const [k, v] of Object.entries(secret.data)) {
+        dataEntries[k] = typeof v === "string" ? v : String(v);
+      }
+    }
+
     return NextResponse.json({
       name: secret.metadata?.name ?? name,
       namespace: secret.metadata?.namespace ?? namespace,
       type: secret.type ?? "Opaque",
       keys,
+      data: dataEntries,
       yaml: yamlStr,
     });
   } catch (err: unknown) {

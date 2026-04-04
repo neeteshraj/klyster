@@ -1,5 +1,35 @@
 @import "tailwindcss";
 
+/* Meslo LGS Nerd Font — supports Powerline, Oh My Posh, Starship glyphs */
+@font-face {
+  font-family: "MesloLGS Nerd Font";
+  src: url("/fonts/MesloLGSNerdFont-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MesloLGS Nerd Font";
+  src: url("/fonts/MesloLGSNerdFont-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MesloLGS Nerd Font";
+  src: url("/fonts/MesloLGSNerdFont-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MesloLGS Nerd Font";
+  src: url("/fonts/MesloLGSNerdFont-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 /* Theme tokens for shadcn-style utilities (bg-background, border-border, etc.) */
 @theme {
   --color-border: hsl(var(--border));
@@ -62,7 +92,7 @@
     --radius: 0.5rem;
   }
 
-  .light {
+  :root.light, .light {
     --background: 0 0% 100%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;

@@ -20,11 +20,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, Terminal } from "lucide-react";
 import Link from "next/link";
 
-const MonacoEditor = dynamic(
-  () => import("@monaco-editor/react").then((mod) => mod.default),
+import { ThemedEditor } from "@/components/ui/themed-editor";
+
+const PodTerminal = dynamic(
+  () => import("@/components/terminal/pod-terminal").then((mod) => mod.PodTerminal),
   { ssr: false }
 );
 
@@ -34,9 +36,12 @@ export default function PodDetailPage() {
   const router = useRouter();
   const name = params?.name as string;
   const namespace = searchParams?.get("namespace") ?? "default";
+  const hash = typeof window !== "undefined" ? window.location.hash : "";
+  const defaultTab = hash === "#shell" ? "shell" : "logs";
   const [container, setContainer] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState(defaultTab);
 
   const { data: pod, isLoading, error } = usePodDetail(name, namespace);
   const invalidate = usePodDetailInvalidate();
@@ -45,7 +50,7 @@ export default function PodDetailPage() {
     namespace,
     name,
     currentContainer,
-    !!pod && !!currentContainer
+    !!pod && !!currentContainer && activeTab === "logs"
   );
 
   const customKubeconfig = useStore((s) => s.customKubeconfig);
@@ -132,9 +137,26 @@ export default function PodDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Container selector (shared across tabs) */}
+          {pod.containers?.length > 1 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Container:</span>
+              {pod.containers.map((c) => (
+                <Button
+                  key={c}
+                  variant={currentContainer === c ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setContainer(c)}
+                >
+                  {c}
+                </Button>
+              ))}
+            </div>
+          )}
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Logs &amp; YAML</CardTitle>
+              <CardTitle>Pod Console</CardTitle>
               <Button
                 variant="destructive"
                 size="sm"
@@ -145,26 +167,17 @@ export default function PodDetailPage() {
               </Button>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="logs">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                   <TabsTrigger value="logs">Logs</TabsTrigger>
+                  <TabsTrigger value="shell" className="gap-1.5">
+                    <Terminal className="h-3.5 w-3.5" />
+                    Shell
+                  </TabsTrigger>
                   <TabsTrigger value="yaml">YAML</TabsTrigger>
                 </TabsList>
+
                 <TabsContent value="logs" className="mt-4">
-                  {pod.containers?.length > 1 && (
-                    <div className="flex gap-2 mb-2">
-                      {pod.containers.map((c) => (
-                        <Button
-                          key={c}
-                          variant={currentContainer === c ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setContainer(c)}
-                        >
-                          {c}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
                   <div className="rounded-md border bg-muted/30 p-3 h-[400px] overflow-auto">
                     {connected && (
                       <span className="text-xs text-muted-foreground mb-2 block">
@@ -180,9 +193,22 @@ export default function PodDetailPage() {
                     <div ref={logEndRef} />
                   </div>
                 </TabsContent>
+
+                <TabsContent value="shell" className="mt-4">
+                  <div className="rounded-lg border border-white/[0.06] overflow-hidden h-[400px]">
+                    {activeTab === "shell" && (
+                      <PodTerminal
+                        namespace={namespace}
+                        pod={name}
+                        container={currentContainer}
+                      />
+                    )}
+                  </div>
+                </TabsContent>
+
                 <TabsContent value="yaml" className="mt-4">
                   <div className="rounded-md border h-[400px] overflow-hidden">
-                    <MonacoEditor
+                    <ThemedEditor
                       height="400px"
                       language="yaml"
                       value={pod.yaml ?? "# No YAML"}

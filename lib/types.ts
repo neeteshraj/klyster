@@ -50,6 +50,7 @@ export interface DeploymentScalePayload {
 export interface ClusterOverview {
   namespacesCount: number;
   podsCount: number;
+  deploymentsCount?: number;
   context: string;
   nodesCount?: number;
   /** Aggregated resource utilization (from nodes + metrics). */

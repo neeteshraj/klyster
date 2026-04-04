@@ -9,12 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
+import { ThemedEditor } from "@/components/ui/themed-editor";
 
-const MonacoEditor = dynamic(
-  () => import("@monaco-editor/react").then((mod) => mod.default),
-  { ssr: false }
-);
 
 export default function ServiceDetailPage() {
   const params = useParams();
@@ -76,7 +72,7 @@ export default function ServiceDetailPage() {
             <p className="text-sm text-muted-foreground">{data.namespace}</p>
           </CardHeader>
           <CardContent>
-            <MonacoEditor height="400px" language="yaml" value={data.yaml} options={{ readOnly: true }} />
+            <ThemedEditor height="400px" language="yaml" value={data.yaml} options={{ readOnly: true }} />
           </CardContent>
         </Card>
       ) : null}

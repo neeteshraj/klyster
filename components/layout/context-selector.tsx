@@ -37,7 +37,7 @@ export function ContextSelector() {
         <Button
           variant="outline"
           size="sm"
-          className="w-full min-w-0 justify-between font-mono text-xs px-2"
+          className="min-w-[200px] max-w-[320px] justify-between font-mono text-xs px-3"
           disabled={isLoading}
         >
           <span className="truncate min-w-0">

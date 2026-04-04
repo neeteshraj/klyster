@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { AuthGuard } from "@/components/layout/auth-guard";
+import { ThemeSync } from "@/components/layout/theme-provider";
 
 export const metadata: Metadata = {
   title: "Klyster – Kubernetes Dashboard",
@@ -18,9 +19,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
         <Providers>
+          <ThemeSync />
           <AuthGuard>{children}</AuthGuard>
         </Providers>
       </body>

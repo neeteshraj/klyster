@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "@/store/use-store";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,13 +12,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { FileUp, ClipboardPaste, Server } from "lucide-react";
+import { ClipboardPaste, Server } from "lucide-react";
 
 export function KubeconfigDialog() {
   const customKubeconfig = useStore((s) => s.customKubeconfig);
   const kubeconfigSource = useStore((s) => s.kubeconfigSource);
   const setCustomKubeconfig = useStore((s) => s.setCustomKubeconfig);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [pasteValue, setPasteValue] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -26,19 +25,6 @@ export function KubeconfigDialog() {
     setCustomKubeconfig(null, "default");
     setPasteValue("");
     setOpen(false);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = typeof reader.result === "string" ? reader.result : "";
-      if (text.trim()) setCustomKubeconfig(text.trim(), "file");
-      setOpen(false);
-    };
-    reader.readAsText(file);
-    e.target.value = "";
   };
 
   const handlePasteApply = () => {
@@ -57,9 +43,7 @@ export function KubeconfigDialog() {
   const sourceLabel =
     kubeconfigSource === "default"
       ? "Default (server)"
-      : kubeconfigSource === "file"
-        ? "From file"
-        : "Pasted";
+      : "Pasted";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -73,7 +57,7 @@ export function KubeconfigDialog() {
         <DialogHeader>
           <DialogTitle>Kubeconfig source</DialogTitle>
           <DialogDescription>
-            Use the server&apos;s default config, load a file, or paste config. When set, it is sent with each API request.
+            Use the server&apos;s default config or paste your kubeconfig. When set, it is sent with each API request.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-2">
@@ -87,25 +71,6 @@ export function KubeconfigDialog() {
             >
               <Server className="mr-2 h-4 w-4" />
               Use default (server)
-            </Button>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".yaml,.yml,*"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            <Button
-              type="button"
-              variant={kubeconfigSource === "file" ? "default" : "outline"}
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-1"
-            >
-              <FileUp className="mr-2 h-4 w-4" />
-              Load from file
             </Button>
           </div>
           <div className="space-y-2">
