@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useStore } from "@/store/use-store";
+import type { Terminal } from "@xterm/xterm";
+import type { FitAddon } from "@xterm/addon-fit";
 
 interface PodTerminalProps {
   namespace: string;
@@ -13,8 +15,8 @@ interface PodTerminalProps {
 export function PodTerminal({ namespace, pod, container, command = "/bin/sh" }: PodTerminalProps) {
   const termRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const terminalRef = useRef<any>(null);
-  const fitAddonRef = useRef<any>(null);
+  const terminalRef = useRef<Terminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
   const [status, setStatus] = useState<"connecting" | "connected" | "disconnected" | "error">("connecting");
   const [errorMsg, setErrorMsg] = useState("");
   const customKubeconfig = useStore((s) => s.customKubeconfig);

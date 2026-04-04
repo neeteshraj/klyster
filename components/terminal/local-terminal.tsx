@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import type { Terminal } from "@xterm/xterm";
+import type { FitAddon } from "@xterm/addon-fit";
 
 export function LocalTerminal() {
   const termRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
-  const terminalRef = useRef<any>(null);
-  const fitAddonRef = useRef<any>(null);
+  const terminalRef = useRef<Terminal | null>(null);
+  const fitAddonRef = useRef<FitAddon | null>(null);
   const [status, setStatus] = useState<"connecting" | "connected" | "disconnected" | "error">("connecting");
   const [shellInfo, setShellInfo] = useState("");
 
